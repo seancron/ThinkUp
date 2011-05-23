@@ -92,18 +92,21 @@ class FacebookPluginConfigurationController extends PluginConfigurationControlle
         ));
 
         //check status of current FB user
-        $session = $facebook->getSession();
-        $fb_user = null;
-        if ($session) {
-            $fb_user_id = $facebook->getUser();
-            $fb_user = $facebook->api('/me');
+        $fb_user = $facebook->getUser();
+        if ($fb_user) {
+            try {
+                $fb_user_profile = $facebook->api('/me');
+            } catch (FacebookApiException $e) {
+                error_log($e);
+                $fb_user = null;
+            }
         }
 
         // login or logout url will be needed depending on current user state.
         if (isset($fb_user)) {
             $logoutUrl = $facebook->getLogoutUrl();
-            $fbconnect_link = '<img src="https://graph.facebook.com/'. $fb_user_id .'/picture" style="float:left;">'.
-            $fb_user['name'].'<br /><a href="'. $logoutUrl .'">
+            $fbconnect_link = '<img src="https://graph.facebook.com/'. $fb_user .'/picture" style="float:left;">'.
+            $fb_user_profile['name'].'<br /><a href="'. $logoutUrl .'">
             <img src="http://static.ak.fbcdn.net/rsrc.php/z2Y31/hash/cxrz4k7j.gif"></a>';
         } else {
             $redirect_uri = urlencode('http://'.$_SERVER['SERVER_NAME'].THINKUP_BASE_URL.'account/?p=facebook');
@@ -117,7 +120,7 @@ class FacebookPluginConfigurationController extends PluginConfigurationControlle
 
         $this->addToView('fbconnect_link', $fbconnect_link);
 
-        $status = self::processPageActions($fb_user);
+        $status = self::processPageActions($fb_user_profile);
         $this->addInfoMessage($status["info"]);
         $this->addErrorMessage($status["error"]);
         $this->addSuccessMessage($status["success"]);
